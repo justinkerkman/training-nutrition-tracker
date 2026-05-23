@@ -334,7 +334,7 @@
       </div>
       <div>
         <label>Session type</label>
-        <select id="quick-session">
+        <select id="quick-session" onchange="autoSetDayType()">
           <option value="">— none / rest —</option>
           <optgroup label="Muay Thai">
             <option value="Muay Thai #1">Muay Thai Workout #1</option>
@@ -718,6 +718,7 @@
       <div class="mp-str-tabs">
         <button class="mp-str-tab active" id="mp-mt-tab-1" onclick="mpSwitchMuayThai('1')">🥊 Workout #1 — Foundations + Power</button>
         <button class="mp-str-tab" id="mp-mt-tab-2" onclick="mpSwitchMuayThai('2')">🌀 Workout #2 — Switch Kicks + Defence</button>
+        <button class="mp-str-tab" id="mp-mt-tab-3" onclick="mpSwitchMuayThai('3')">⚡ Workout #3 — Heavy Bag Intervals</button>
       </div>
 
       <!-- WORKOUT #1 -->
@@ -741,6 +742,16 @@
         <div class="meal-card"><div class="meal-header" onclick="mpToggle(this)"><div class="meal-title-wrap"><div class="meal-label">Cool-down — 9 min</div><div class="meal-name">Same as Workout #1</div><div class="meal-macro-mini">2 min walk · 5 min stretching · 2 min deep breathing</div></div><div class="mp-chevron">▼</div></div><div class="meal-body"><ul><li><span>Walk + slow shadow box</span><span class="qty">2 min — bring HR down</span></li><li><span>Hip flexor stretch</span><span class="qty">Kneeling lunge · 45 s each side</span></li><li><span>Quad stretch</span><span class="qty">Standing · 30 s each side</span></li><li><span>Chest opener stretch</span><span class="qty">Doorway or clasped hands behind back · 30 s</span></li><li><span>Deep breathing</span><span class="qty">2 min — nasal inhale 4 s · hold 4 s · exhale 6 s</span></li></ul></div></div>
         <div class="sup-card"><div class="sup-timing">Key tips — Workout #2</div><ul><li>Switch kick: hop and kick are ONE motion — don't pause between them</li><li>Spinning elbow: practise the pivot slowly first — a rushed spin = a wild elbow</li><li>Cutting angles after combos makes you harder to counter — build the habit now</li><li>Jumping knees: soft landing protects the knees and keeps you mobile</li></ul></div>
       </div><!-- /mp-mt-panel-2 -->
+
+      <!-- WORKOUT #3 -->
+      <div class="mp-str-panel" id="mp-mt-panel-3">
+        <div style="height:14px;"></div>
+        <div class="mp-section-lbl">Heavy Bag Intervals · 50–60 min</div>
+        <div class="meal-card"><div class="meal-header" onclick="mpToggle(this)"><div class="meal-title-wrap"><div class="meal-label">Warm-up — 15 min</div><div class="meal-name">Same as Workout #1</div><div class="meal-macro-mini">10 min cross-trainer · 3 min mobility · 2 min loose shadow boxing</div></div><div class="mp-chevron">▼</div></div><div class="meal-body"><ul><li><span>Cross-trainer</span><span class="qty">10 min easy pace</span></li><li><span>Hip circles, leg swings, shoulder rolls</span><span class="qty">3 min</span></li><li><span>Loose shadow boxing</span><span class="qty">2 min — no pattern, just loosen up</span></li></ul></div></div>
+        <div class="meal-card"><div class="meal-header" onclick="mpToggle(this)"><div class="meal-title-wrap"><div class="meal-label">Interval Block</div><div class="meal-name">10 exercises · 30 s work / 5 s rest</div><div class="meal-macro-mini">~6 min per block · 3 blocks total · 1 min rest between blocks</div></div><div class="mp-chevron">▼</div></div><div class="meal-body"><ul><li><span>1 — Left Jab</span><span class="qty">30 s · 5 s rest</span></li><li><span>2 — Right Rear Leg Kick</span><span class="qty">30 s · 5 s rest</span></li><li><span>3 — Right Jab</span><span class="qty">30 s · 5 s rest</span></li><li><span>4 — Left Rear Leg Kick</span><span class="qty">30 s · 5 s rest</span></li><li><span>5 — Floor-to-ceiling Ball</span><span class="qty">30 s · 5 s rest</span></li><li><span>6 — Alternate Knees</span><span class="qty">30 s · 5 s rest</span></li><li><span>7 — Right Teep</span><span class="qty">30 s · 5 s rest</span></li><li><span>8 — Jab-Cross Combos</span><span class="qty">30 s · 5 s rest</span></li><li><span>9 — Left Teep</span><span class="qty">30 s · 5 s rest</span></li><li><span>10 — Floor-to-ceiling Ball</span><span class="qty">30 s · 5 s rest</span></li></ul><div class="note-row">Complete all ten exercises, rest 1 min, repeat × 3 blocks total. Each 30 s is full output — don't pace it.</div></div></div>
+        <div class="meal-card"><div class="meal-header" onclick="mpToggle(this)"><div class="meal-title-wrap"><div class="meal-label">Cool-down — 9 min</div><div class="meal-name">Same as Workout #1</div><div class="meal-macro-mini">2 min walk · 5 min stretching · 2 min deep breathing</div></div><div class="mp-chevron">▼</div></div><div class="meal-body"><ul><li><span>Walk + slow shadow box</span><span class="qty">2 min — bring HR down</span></li><li><span>Hip flexor stretch</span><span class="qty">Kneeling lunge · 45 s each side</span></li><li><span>Quad stretch</span><span class="qty">Standing · 30 s each side</span></li><li><span>Chest opener stretch</span><span class="qty">Doorway or clasped hands behind back · 30 s</span></li><li><span>Deep breathing</span><span class="qty">2 min — nasal inhale 4 s · hold 4 s · exhale 6 s</span></li></ul></div></div>
+        <div class="sup-card"><div class="sup-timing">Key tips — Workout #3</div><ul><li>Pivot the base foot on every rear kick — protects the knee, generates power</li><li>Each 30 s is 30 s of <em>output</em> — empty the round, don't pace it</li><li>Bag swinging wildly? Teep it back — don't chase it</li><li>Floor-to-ceiling ball: jab only, eyes on the ball, small steps to track it</li></ul></div>
+      </div><!-- /mp-mt-panel-3 -->
 
     </div><!-- /mp-panel-muaythai -->
 
@@ -981,7 +992,10 @@ function getAllNutrition() {
 // =========================================================
 
 function today() {
-  return new Date().toISOString().slice(0, 10);
+  const d = new Date();
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
 }
 
 function getWeekNumber(dateStr) {
@@ -1198,10 +1212,20 @@ function renderDashboard() {
 
   // Today's target card
   const todayNutri = state.nutrition.find(n => n.date === today());
-  const tgt = todayNutri && PLAN_TARGETS[todayNutri.dayType] ? PLAN_TARGETS[todayNutri.dayType] : null;
+  let displayDayType = todayNutri ? todayNutri.dayType : null;
+  if (!displayDayType) {
+    const todaySess = state.sessions.find(s => s.date === today() && s.category !== 'walk');
+    if (todaySess) {
+      const st = (todaySess.type || '').toLowerCase();
+      if (/muay|kickbox|strength/i.test(st)) displayDayType = 'Heavy';
+      else if (/cross.train|x.train|functional/i.test(st)) displayDayType = 'Moderate';
+      else if (/walk/i.test(st)) displayDayType = 'Easy';
+    }
+  }
+  const tgt = displayDayType && PLAN_TARGETS[displayDayType] ? PLAN_TARGETS[displayDayType] : null;
   if (tgt) {
     document.getElementById('dash-cal-today').textContent = tgt.cal.toLocaleString();
-    document.getElementById('dash-day-type').textContent = todayNutri.dayType + ' day';
+    document.getElementById('dash-day-type').textContent = displayDayType + ' day' + (!todayNutri || !todayNutri.dayType ? ' (inferred)' : '');
     if (todayNutri.calories) {
       const pct = Math.min(100, Math.round(todayNutri.calories / tgt.cal * 100));
       const over = todayNutri.calories > tgt.cal * 1.05;
@@ -1523,6 +1547,17 @@ function saveWalk() {
   setTimeout(() => msg.style.display = 'none', 2500);
   document.getElementById('walk-existing-hint').style.display = 'none';
   renderDashboard();
+}
+
+function autoSetDayType() {
+  const session = document.getElementById('quick-session').value;
+  const dtEl = document.getElementById('quick-daytype');
+  if (!session || dtEl.value) return; // don't override if already set
+  const s = session.toLowerCase();
+  if (/muay|kickbox|strength/i.test(s)) dtEl.value = 'Heavy';
+  else if (/cross.train|x.train|functional/i.test(s)) dtEl.value = 'Moderate';
+  else if (/walk/i.test(s)) dtEl.value = 'Easy';
+  autofillMacros();
 }
 
 function autofillMacros() {
