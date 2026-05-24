@@ -998,6 +998,15 @@ function today() {
     String(d.getDate()).padStart(2, '0');
 }
 
+// Saturday is always refeed day, regardless of what was stored or auto-set.
+// Use this anywhere we look up PLAN_TARGETS by a date + stored dayType.
+function effectiveDayType(dateStr, storedDayType) {
+  if (dateStr && new Date(dateStr + 'T12:00:00').getDay() === 6) {
+    return 'Saturday';
+  }
+  return storedDayType;
+}
+
 function getWeekNumber(dateStr) {
   const d = new Date(dateStr);
   const start = new Date(d.getFullYear(), 0, 1);
@@ -1212,14 +1221,20 @@ function renderDashboard() {
 
   // Today's target card
   const todayNutri = state.nutrition.find(n => n.date === today());
-  let displayDayType = todayNutri ? todayNutri.dayType : null;
-  if (!displayDayType) {
-    const todaySess = state.sessions.find(s => s.date === today() && s.category !== 'walk');
-    if (todaySess) {
-      const st = (todaySess.type || '').toLowerCase();
-      if (/muay|kickbox|strength/i.test(st)) displayDayType = 'Heavy';
-      else if (/cross.train|x.train|functional/i.test(st)) displayDayType = 'Moderate';
-      else if (/walk/i.test(st)) displayDayType = 'Easy';
+  let displayDayType;
+  // Saturday is always refeed day — wins over both stored dayType and session inference
+  if (new Date().getDay() === 6) {
+    displayDayType = 'Saturday';
+  } else {
+    displayDayType = todayNutri ? todayNutri.dayType : null;
+    if (!displayDayType) {
+      const todaySess = state.sessions.find(s => s.date === today() && s.category !== 'walk');
+      if (todaySess) {
+        const st = (todaySess.type || '').toLowerCase();
+        if (/muay|kickbox|strength/i.test(st)) displayDayType = 'Heavy';
+        else if (/cross.train|x.train|functional/i.test(st)) displayDayType = 'Moderate';
+        else if (/walk/i.test(st)) displayDayType = 'Easy';
+      }
     }
   }
   const tgt = displayDayType && PLAN_TARGETS[displayDayType] ? PLAN_TARGETS[displayDayType] : null;
@@ -1332,14 +1347,15 @@ function renderNutritionLog() {
   }
 
   const rows = nutri.map((n, i) => {
-    const tgt = PLAN_TARGETS[n.dayType] || {};
+    const eff = effectiveDayType(n.date, n.dayType);
+    const tgt = PLAN_TARGETS[eff] || {};
     const calOk = n.calories && tgt.cal ? (n.calories <= tgt.cal * 1.05 ? 'good' : 'over') : '';
     const pOk = n.protein && tgt.p ? (n.protein >= tgt.p * 0.95 ? 'good' : 'low') : '';
     const delIdx = state.nutrition.indexOf(n);
     const del = delIdx >= 0 ? `<button class="del-btn" onclick="deleteNutrition(${delIdx})" title="Delete">✕</button>` : '';
     return `<tr>
       <td>${formatDate(n.date)}</td>
-      <td>${dayTag(n.dayType)}</td>
+      <td>${dayTag(eff)}</td>
       <td class="${calOk}">${n.calories ? n.calories.toLocaleString() : '—'} <small style="color:#9ca3af">${tgt.cal?'/ '+tgt.cal.toLocaleString():''}</small></td>
       <td class="${pOk}">${n.protein||'—'} <small style="color:#9ca3af">${tgt.p?'/ '+tgt.p+'g':''}</small></td>
       <td>${n.fat||'—'} <small style="color:#9ca3af">${tgt.f?'/ '+tgt.f+'g':''}</small></td>
@@ -1390,7 +1406,7 @@ function renderWeekly() {
     const dayNutri = nutri.find(n => n.date === d);
     const dayName = new Date(d + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'short', day: 'numeric' });
     const sessionTags = daySessions.length ? daySessions.map(s => typeTag(s.type)).join(' ') : '<span style="color:#d1d5db;font-size:11px">rest</span>';
-    const nutriInfo = dayNutri ? `${dayTag(dayNutri.dayType)} ${dayNutri.calories?dayNutri.calories.toLocaleString()+' cal':''}` : '<span style="color:#d1d5db;font-size:11px">not logged</span>';
+    const nutriInfo = dayNutri ? `${dayTag(effectiveDayType(dayNutri.date, dayNutri.dayType))} ${dayNutri.calories?dayNutri.calories.toLocaleString()+' cal':''}` : '<span style="color:#d1d5db;font-size:11px">not logged</span>';
     days.push(`<div style="display:flex;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f3f4f6;gap:10px;">
       <div style="width:52px;flex-shrink:0;font-size:12px;font-weight:600;color:${d===today()?'#3b82f6':'#6b7280'};padding-top:2px">${dayName}</div>
       <div style="flex:1"><div style="margin-bottom:3px">${sessionTags}</div><div style="font-size:11px">${nutriInfo}</div></div>
@@ -1482,6 +1498,8 @@ function preloadQuickLog() {
     walkHint.style.display = 'none';
   }
 
+  const isSaturday = new Date(date + 'T12:00:00').getDay() === 6;
+
   if (!nutri && !session) {
     // No data for this date — clear main fields so future/new days start clean
     ['quick-session','quick-daytype'].forEach(id => document.getElementById(id).value = '');
@@ -1490,6 +1508,10 @@ function preloadQuickLog() {
       el.value = '';
       el.style.background = '';
     });
+    if (isSaturday) {
+      document.getElementById('quick-daytype').value = 'Saturday';
+      autofillMacros();
+    }
     return;
   }
 
@@ -1513,6 +1535,14 @@ function preloadQuickLog() {
     if (!nutri) document.getElementById('quick-notes').value = session.notes || '';
   }
 
+  // Saturday override — refeed day always wins, even over saved Heavy entries.
+  // Sets dayType=Saturday and reseeds macros to Saturday target. User can still
+  // edit and save real intake; this just ensures the form reflects the rule.
+  if (isSaturday && document.getElementById('quick-daytype').value !== 'Saturday') {
+    document.getElementById('quick-daytype').value = 'Saturday';
+    autofillMacros();
+  }
+
   // Weight
   const wtEntry = state.weight.find(w => w.date === date);
   if (wtEntry) document.getElementById('quick-weight').value = wtEntry.kg;
@@ -1521,7 +1551,9 @@ function preloadQuickLog() {
   const hint = document.createElement('div');
   hint.id = 'quick-existing-hint';
   hint.style.cssText = 'margin-top:8px;padding:7px 10px;background:#eff6ff;border-radius:6px;font-size:11px;color:#1e40af;';
-  hint.textContent = '✦ Pre-loaded from existing entry — edit any field and Save to update.';
+  hint.textContent = isSaturday
+    ? '✦ Saturday refeed day — day type and macros snapped to Saturday target. Edit and Save to log real intake.'
+    : '✦ Pre-loaded from existing entry — edit any field and Save to update.';
   document.getElementById('quick-save-msg').insertAdjacentElement('afterend', hint);
 }
 
@@ -1553,6 +1585,13 @@ function autoSetDayType() {
   const session = document.getElementById('quick-session').value;
   const dtEl = document.getElementById('quick-daytype');
   if (!session || dtEl.value) return; // don't override if already set
+  // Saturday (refeed) wins over session-based inference
+  const dateStr = document.getElementById('quick-date').value;
+  if (dateStr && new Date(dateStr + 'T12:00:00').getDay() === 6) {
+    dtEl.value = 'Saturday';
+    autofillMacros();
+    return;
+  }
   const s = session.toLowerCase();
   if (/muay|kickbox|strength/i.test(s)) dtEl.value = 'Heavy';
   else if (/cross.train|x.train|functional/i.test(s)) dtEl.value = 'Moderate';
@@ -1911,7 +1950,7 @@ function autoPopulateCheckin(mon, sunday) {
   // Calories: majority of logged days within 10% of day-type target
   const calsHit = nutriLogged.length >= 4 &&
     nutriLogged.filter(n => {
-      const tgt = PLAN_TARGETS[n.dayType];
+      const tgt = PLAN_TARGETS[effectiveDayType(n.date, n.dayType)];
       return tgt && n.calories > 0 && n.calories <= tgt.cal * 1.1;
     }).length >= Math.ceil(nutriLogged.length * 0.6);
 
