@@ -116,9 +116,13 @@
   .macro-chip.low .mval { color: #d97706; }
 
   /* CHECK-IN */
-  .feel-option { display:flex; align-items:center; gap:6px; padding:8px 14px; border:1.5px solid #e5e7eb; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; color:#374151; }
-  .feel-option:has(input:checked) { border-color:#1a1a2e; background:#f0f4ff; color:#1a1a2e; }
-  .feel-option input { accent-color:#1a1a2e; }
+  .feel-option { display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border:1.5px solid #e5e7eb; border-radius:999px; cursor:pointer; font-size:13px; line-height:1; text-transform:none; letter-spacing:normal; margin-bottom:0; user-select:none; -webkit-user-select:none; transition:all 0.15s; }
+  .feel-option input { position:absolute; opacity:0; width:0; height:0; margin:0; pointer-events:none; }
+  .feel-option:hover { border-color:#c7d2fe; background:#f8fafc; }
+  .feel-option:has(input:checked) { border-color:#1a1a2e; background:#f0f4ff; }
+  .feel-option .feel-emoji { font-size:18px; line-height:1; }
+  .feel-option .feel-text { line-height:1; text-transform:uppercase; letter-spacing:0.4px; font-weight:600; color:#374151; }
+  .feel-option:has(input:checked) .feel-text { color:#1a1a2e; }
   .adherence-row { display:grid; grid-template-columns:28px 1fr 160px; gap:8px; align-items:center; padding:7px 0; border-bottom:1px solid #f3f4f6; }
   .adherence-row:last-child { border-bottom:none; }
   .adh-check input[type=checkbox] { width:16px; height:16px; accent-color:#059669; cursor:pointer; }
@@ -559,13 +563,13 @@
     <h3>2 · How did the week feel?</h3>
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <label class="feel-option" id="feel-better">
-        <input type="radio" name="ci-feel" value="better"> 😊 Better than last week
+        <input type="radio" name="ci-feel" value="better"><span class="feel-emoji">😊</span><span class="feel-text">Better than last week</span>
       </label>
       <label class="feel-option" id="feel-same">
-        <input type="radio" name="ci-feel" value="same"> 😐 About the same
+        <input type="radio" name="ci-feel" value="same"><span class="feel-emoji">😐</span><span class="feel-text">About the same</span>
       </label>
       <label class="feel-option" id="feel-worse">
-        <input type="radio" name="ci-feel" value="worse"> 😔 Worse — explain below
+        <input type="radio" name="ci-feel" value="worse"><span class="feel-emoji">😔</span><span class="feel-text">Worse — explain below</span>
       </label>
     </div>
   </div>
