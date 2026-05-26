@@ -82,8 +82,13 @@
   /* FORM */
   .form-row { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); margin-bottom: 10px; }
   .form-row.tight { grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); }
+  .form-row > * { min-width: 0; }
   label { font-size: 11px; font-weight: 600; color: #6b7280; display: block; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.4px; }
   input, select, textarea { width: 100%; border: 1px solid #e5e7eb; border-radius: 6px; padding: 7px 10px; font-size: 13px; font-family: inherit; color: #1a1a2e; background: white; }
+  /* iOS Safari ignores width:100% on native date inputs — force it. Keeps the native picker on tap. */
+  input[type="date"] { -webkit-appearance: none; appearance: none; display: block; min-height: 34px; }
+  /* Match select chrome to date/text inputs so columns line up visually on iOS */
+  select { -webkit-appearance: none; appearance: none; padding-right: 28px; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M1 1l4 4 4-4'/></svg>"); background-repeat: no-repeat; background-position: right 10px center; }
   input:focus, select:focus, textarea:focus { outline: none; border-color: #1a1a2e; }
   .btn { background: #1a1a2e; color: white; border: none; border-radius: 6px; padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }
   .btn:hover { background: #2d2d4e; }
