@@ -1026,9 +1026,17 @@ function effectiveDayType(dateStr, storedDayType) {
 }
 
 function getWeekNumber(dateStr) {
-  const d = new Date(dateStr);
-  const start = new Date(d.getFullYear(), 0, 1);
-  return Math.ceil(((d - start) / 86400000 + start.getDay() + 1) / 7);
+  // ISO 8601 week number. Parse as LOCAL to avoid the UTC/local mismatch that
+  // shifted every Adelaide week by +1 (the old formula compared a UTC-parsed
+  // date against a local Jan 1, so the ~10h tz offset pushed Sundays into the
+  // next week). Algorithm: shift the date to the Thursday of its ISO week,
+  // then count weeks from Jan 1 of that Thursday's year.
+  const [y, m, day] = dateStr.split('-').map(Number);
+  const d = new Date(y, m - 1, day);
+  const isoDay = d.getDay() || 7;          // Sun=0 → 7
+  d.setDate(d.getDate() + 4 - isoDay);     // jump to Thursday of this ISO week
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
 }
 
 function getMonWeek(date) {
