@@ -888,7 +888,10 @@
 
   <div class="section">
     <h3>💾 Backup &amp; restore</h3>
-    <p style="font-size:12px;color:#6b7280;margin-bottom:14px;">Your data lives in this app's local storage — not iCloud. Export regularly to back it up, or to move it to another device (iPad, iPhone).</p>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <p style="font-size:12px;color:#6b7280;margin:0;">Data syncs automatically to Supabase cloud — open on any device and it loads your latest data.</p>
+      <span id="sync-status" style="font-size:11px;color:#6b7280;white-space:nowrap;margin-left:12px;">⟳ Connecting…</span>
+    </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
       <button class="btn" onclick="exportData()" style="background:#059669;">⬇ Export data (.json)</button>
       <button class="btn" onclick="document.getElementById('import-file').click()" style="background:#2563eb;">⬆ Import data (.json)</button>
@@ -980,8 +983,110 @@ function loadState() {
   };
 }
 
-function saveState(state) {
-  localStorage.setItem('jk_tracker_v2', JSON.stringify(state));
+function saveStateLocal(st) {
+  localStorage.setItem('jk_tracker_v2', JSON.stringify(st));
+}
+
+let _syncTimer = null;
+function saveState(st) {
+  saveStateLocal(st);
+  // Debounced background push — 1.5 s after last write
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(() => sbPush(st), 1500);
+}
+
+// =========================================================
+// SUPABASE SYNC
+// =========================================================
+
+const SB_URL = 'https://xpihjftirwdgcaarwsql.supabase.co';
+const SB_KEY = 'sb_publishable_eHbgMo_w9yIpdaOaYa9YZA_Pjfz2pmF';
+const SB_HDR = {
+  'apikey': SB_KEY,
+  'Authorization': 'Bearer ' + SB_KEY,
+  'Content-Type': 'application/json',
+};
+
+function setSyncStatus(status) {
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  const map = {
+    syncing: ['⟳ Syncing…',                 '#6b7280'],
+    synced:  ['✓ Synced',                     '#059669'],
+    error:   ['⚠ Offline — saved locally',    '#d97706'],
+    loading: ['↓ Loading from cloud…',        '#6b7280'],
+  };
+  const [text, color] = map[status] || map.synced;
+  el.textContent = text;
+  el.style.color = color;
+}
+
+async function sbPush(st) {
+  setSyncStatus('syncing');
+  try {
+    const res = await fetch(SB_URL + '/rest/v1/tracker_state', {
+      method: 'POST',
+      headers: { ...SB_HDR, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ id: 1, state: st, updated_at: new Date().toISOString() }),
+    });
+    if (!res.ok) { const t = await res.text(); throw new Error(res.status + ' ' + t); }
+    setSyncStatus('synced');
+  } catch (err) {
+    console.warn('Supabase push failed:', err.message);
+    setSyncStatus('error');
+  }
+}
+
+async function sbFetchRemote() {
+  const res = await fetch(SB_URL + '/rest/v1/tracker_state?id=eq.1&select=state', {
+    headers: SB_HDR,
+  });
+  if (!res.ok) throw new Error('Fetch failed: ' + res.status);
+  const rows = await res.json();
+  return rows.length ? rows[0].state : null;
+}
+
+function sbMerge(remote, local) {
+  // Union arrays by natural key — remote wins on conflict (it's the source of truth)
+  function unionByKey(remArr, locArr, keyFn) {
+    const seen = new Set((remArr || []).map(keyFn));
+    return [...(remArr || []), ...(locArr || []).filter(x => !seen.has(keyFn(x)))];
+  }
+  return {
+    sessions:  unionByKey(remote.sessions,  local.sessions,  s => s.date + '|' + (s.category || 'main')),
+    nutrition: unionByKey(remote.nutrition, local.nutrition, n => n.date),
+    weight:    unionByKey(remote.weight,    local.weight,    w => w.date),
+    checkins:  unionByKey(remote.checkins,  local.checkins,  c => c.weekEnding),
+    drafts:    { ...(local.drafts || {}), ...(remote.drafts || {}) },
+  };
+}
+
+async function initSupabase() {
+  setSyncStatus('loading');
+  try {
+    const remote = await sbFetchRemote();
+    const local  = loadState();
+    if (remote) {
+      const merged = sbMerge(remote, local);
+      state = merged;
+      saveStateLocal(state);
+      renderDashboard();
+      buildWeightChart();
+      // If local had items not yet in remote (e.g. logged while offline), push them up
+      const hasLocalOnly =
+        (local.sessions  || []).some(s => !(remote.sessions  || []).find(r => r.date === s.date && (r.category || 'main') === (s.category || 'main'))) ||
+        (local.nutrition || []).some(n => !(remote.nutrition || []).find(r => r.date === n.date)) ||
+        (local.weight    || []).some(w => !(remote.weight    || []).find(r => r.date === w.date));
+      if (hasLocalOnly) await sbPush(state);
+      else setSyncStatus('synced');
+    } else {
+      // No remote data yet — seed with current local state
+      await sbPush(state);
+    }
+  } catch (err) {
+    console.warn('Supabase init failed, using localStorage:', err.message);
+    setSyncStatus('error');
+  }
 }
 
 let state = loadState();
@@ -2233,6 +2338,7 @@ function init() {
 }
 
 init();
+setTimeout(initSupabase, 200); // kick off cloud sync after initial render
 </script>
 </body>
 </html>
