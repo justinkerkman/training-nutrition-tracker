@@ -258,6 +258,18 @@
   #mp-wrapper .mp-str-tab.active { color:var(--mp-accent); border-bottom-color:var(--mp-accent); }
   #mp-wrapper .mp-str-panel { display:none; }
   #mp-wrapper .mp-str-panel.active { display:block; }
+
+  /* STRENGTH SET LOG */
+  .str-exercise { margin-bottom:16px; }
+  .str-ex-name { font-size:12.5px; font-weight:600; color:#374151; margin-bottom:6px; }
+  .str-ex-hint { font-size:10px; color:#9ca3af; font-weight:400; margin-left:4px; }
+  .str-sets-row { display:flex; gap:8px; align-items:flex-end; flex-wrap:wrap; }
+  .str-set-col { display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .str-set-lbl { font-size:10px; color:#9ca3af; text-transform:uppercase; letter-spacing:0.3px; }
+  .str-set-input { width:58px; border:1px solid #e5e7eb; border-radius:6px; padding:6px 4px; font-size:15px; font-weight:600; text-align:center; font-family:inherit; color:#1a1a2e; -moz-appearance:textfield; }
+  .str-set-input::-webkit-outer-spin-button,.str-set-input::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
+  .str-set-input:focus { outline:none; border-color:#1a1a2e; }
+  .str-prev-val { width:58px; text-align:center; font-size:10px; color:#b0bec5; min-height:14px; }
 </style>
 </head>
 <body>
@@ -409,6 +421,16 @@
       <button class="btn secondary" onclick="fillTodayDate()">Fill today</button>
     </div>
     <div id="quick-save-msg" style="margin-top:8px; font-size:12px; color:#059669; display:none;">✓ Entry saved</div>
+
+    <!-- Strength set log — shown when Strength #1 or #2 is selected -->
+    <div id="strength-log-section" style="display:none; border-top:1px solid #f0f2f5; margin-top:14px; padding-top:12px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;">
+        <span style="font-size:12px; font-weight:600; color:#5b21b6; text-transform:uppercase; letter-spacing:0.4px;">💪 Set Log — <span id="str-log-title"></span></span>
+        <span style="font-size:10px; color:#9ca3af;">weight in kg per set</span>
+      </div>
+      <div id="str-last-session" style="display:none; padding:7px 10px; background:#f0fdf4; border-radius:6px; font-size:11px; color:#065f46; margin-bottom:10px; line-height:1.5;"></div>
+      <div id="str-exercises"></div>
+    </div>
 
     <!-- Morning Walk — separate session slot -->
     <div style="border-top:1px solid #f0f2f5; margin-top:14px; padding-top:12px;">
@@ -927,6 +949,22 @@ const WEEKLY_GOALS = [
   { id: 'strength',   label: 'Strength',   target: 2, unit: 'sessions', types: ['Strength','Strength #1','Strength #2','X-trainer + Strength #1','X-trainer + Strength #2'], icon: '🏋️', color: '#ede9fe' },
   { id: 'z2cardio',   label: 'Z2 Cardio',  target: 1, unit: 'sessions', types: ['Cross-trainer','X-trainer + Strength #1','X-trainer + Strength #2','X-trainer + Functional'], icon: '🚴', color: '#d1fae5' },
 ];
+
+// Exercise definitions for per-set weight logging
+const STRENGTH_EXERCISES = {
+  'Strength #1': [
+    { id: 'rdl',      name: 'Romanian Deadlift',              numSets: 4, hint: 'DB or KB — per side kg' },
+    { id: 'kb_press', name: 'KB Shoulder Press (each arm)',   numSets: 4, hint: 'Kettlebell kg' },
+  ],
+  'Strength #2': [
+    { id: 'bench',    name: 'DB Bench Press',                 numSets: 4, hint: 'Per dumbbell kg' },
+    { id: 'row',      name: 'Single-Arm DB Row (each arm)',   numSets: 4, hint: 'Dumbbell kg' },
+    { id: 'curls',    name: 'Hammer Curls (optional)',        numSets: 2, hint: 'Optional finisher' },
+  ],
+};
+// Combined session types use the same exercise definitions
+STRENGTH_EXERCISES['X-trainer + Strength #1'] = STRENGTH_EXERCISES['Strength #1'];
+STRENGTH_EXERCISES['X-trainer + Strength #2'] = STRENGTH_EXERCISES['Strength #2'];
 
 // Seed data — pre-loaded from project files (W17–W19)
 const SEED_SESSIONS = [
@@ -1464,13 +1502,34 @@ function renderTrainingLog() {
   const rows = sessions.map((s, i) => {
     const isUser = !SEED_SESSIONS.includes(s);
     const del = isUser ? `<button class="del-btn" onclick="deleteSession(${state.sessions.indexOf(s)})" title="Delete">✕</button>` : '';
+
+    // Expandable strength detail row
+    const exDefs = STRENGTH_EXERCISES[s.type];
+    const hasSets = s.sets && exDefs;
+    const detailRowId = `str-detail-${i}`;
+    let detailRow = '';
+    let expandBtn = '';
+    if (hasSets) {
+      const detailHtml = exDefs
+        .filter(ex => s.sets[ex.id] && s.sets[ex.id].some(v => v != null))
+        .map(ex => {
+          const weights = s.sets[ex.id].map(v => v != null ? v + ' kg' : '—').join(' · ');
+          return `<div style="font-size:11px;color:#374151;padding:2px 0;display:flex;gap:8px;">
+            <span style="color:#9ca3af;min-width:170px;flex-shrink:0;">${ex.name}</span>
+            <span>${weights}</span>
+          </div>`;
+        }).join('');
+      detailRow = `<tr id="${detailRowId}" style="display:none;"><td colspan="5" style="padding:6px 12px 10px;background:#f9fafb;border-bottom:1px solid #f3f4f6;">${detailHtml}</td></tr>`;
+      expandBtn = `<button class="del-btn" onclick="toggleStrDetail('${detailRowId}',this)" style="color:#9ca3af;margin-right:2px;" title="Show weights">▶</button>`;
+    }
+
     return `<tr>
       <td>${formatDate(s.date)}</td>
       <td>${typeTag(s.type)}</td>
       <td>${s.duration ? s.duration + ' min' : '—'}</td>
-      <td style="color:#6b7280;font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.notes||''}</td>
-      <td>${del}</td>
-    </tr>`;
+      <td style="color:#6b7280;font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.notes||''}</td>
+      <td style="white-space:nowrap">${expandBtn}${del}</td>
+    </tr>${detailRow}`;
   }).join('');
 
   document.getElementById('training-table-wrap').innerHTML = `
@@ -1651,6 +1710,7 @@ function preloadQuickLog() {
       el.value = '';
       el.style.background = '';
     });
+    toggleStrengthLog(); // hide strength section for empty dates
     if (isSaturday) {
       document.getElementById('quick-daytype').value = 'Saturday';
       autofillMacros();
@@ -1676,6 +1736,18 @@ function preloadQuickLog() {
     document.getElementById('quick-session').value  = session.type     || '';
     document.getElementById('quick-duration').value = session.duration || '';
     if (!nutri) document.getElementById('quick-notes').value = session.notes || '';
+  }
+
+  // Pre-fill strength sets if the session has logged set data
+  if (session && STRENGTH_EXERCISES[session.type]) {
+    toggleStrengthLog();
+    if (session.sets) {
+      // Find the previous session (not this date) for reference row
+      const prevRef = getAllSessions().find(s => s.type === session.type && s.sets && s.date !== date);
+      renderStrengthInputs(session.type, session.sets, prevRef ? prevRef.sets : null);
+    }
+  } else {
+    toggleStrengthLog();
   }
 
   // Saturday override — refeed day always wins, even over saved Heavy entries.
@@ -1724,8 +1796,95 @@ function saveWalk() {
   renderDashboard();
 }
 
+// =========================================================
+// STRENGTH SET LOG
+// =========================================================
+
+function toggleStrengthLog() {
+  const sessionType = document.getElementById('quick-session').value;
+  const exercises = STRENGTH_EXERCISES[sessionType];
+  const section = document.getElementById('strength-log-section');
+  if (!exercises) { section.style.display = 'none'; return; }
+
+  section.style.display = 'block';
+  document.getElementById('str-log-title').textContent = sessionType;
+
+  // Find last saved session of same type that has set data
+  const prev = getAllSessions().find(s => s.type === sessionType && s.sets);
+  renderStrengthInputs(sessionType, null, prev ? prev.sets : null);
+
+  const lastEl = document.getElementById('str-last-session');
+  if (prev && prev.sets) {
+    const summary = exercises
+      .filter(ex => prev.sets[ex.id] && prev.sets[ex.id].some(v => v))
+      .map(ex => {
+        const weights = prev.sets[ex.id].map(v => v ? v : '—').join(' / ');
+        return `<strong>${ex.name.split('(')[0].trim()}</strong>: ${weights} kg`;
+      }).join('<br>');
+    lastEl.innerHTML = `↑ Last ${sessionType} · ${formatDate(prev.date)}<br>${summary}`;
+    lastEl.style.display = 'block';
+  } else {
+    lastEl.style.display = 'none';
+  }
+}
+
+function renderStrengthInputs(sessionType, currentSets, prevSets) {
+  const exercises = STRENGTH_EXERCISES[sessionType];
+  if (!exercises) return;
+
+  const html = exercises.map(ex => {
+    const cur  = currentSets ? (currentSets[ex.id]  || []) : [];
+    const prev = prevSets    ? (prevSets[ex.id]      || []) : [];
+
+    const setCols = Array.from({ length: ex.numSets }, (_, i) => {
+      const curVal  = (cur[i]  != null && cur[i]  !== '') ? cur[i]  : '';
+      const prevVal = (prev[i] != null && prev[i] !== '') ? prev[i] : '';
+      return `<div class="str-set-col">
+        <div class="str-set-lbl">S${i+1}</div>
+        <input type="number" class="str-set-input" id="str-${ex.id}-${i}"
+               value="${curVal}" placeholder="${prevVal || '—'}"
+               step="0.5" min="0">
+        <div class="str-prev-val">${prevVal ? prevVal + ' kg' : ''}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="str-exercise">
+      <div class="str-ex-name">${ex.name}<span class="str-ex-hint">${ex.hint}</span></div>
+      <div class="str-sets-row">${setCols}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('str-exercises').innerHTML = html;
+}
+
+function getStrengthSets(sessionType) {
+  const exercises = STRENGTH_EXERCISES[sessionType];
+  if (!exercises) return null;
+  const sets = {};
+  let hasAny = false;
+  exercises.forEach(ex => {
+    const vals = Array.from({ length: ex.numSets }, (_, i) => {
+      const el = document.getElementById(`str-${ex.id}-${i}`);
+      if (!el || el.value === '') return null;
+      const v = parseFloat(el.value);
+      return isNaN(v) ? null : v;
+    });
+    if (vals.some(v => v !== null)) { sets[ex.id] = vals; hasAny = true; }
+  });
+  return hasAny ? sets : null;
+}
+
+function toggleStrDetail(rowId, btn) {
+  const row = document.getElementById(rowId);
+  if (!row) return;
+  const isOpen = row.style.display !== 'none';
+  row.style.display = isOpen ? 'none' : 'table-row';
+  btn.textContent = isOpen ? '▶' : '▼';
+}
+
 function autoSetDayType() {
   const session = document.getElementById('quick-session').value;
+  toggleStrengthLog(); // show/hide strength log whenever session type changes
   const dtEl = document.getElementById('quick-daytype');
   if (!session || dtEl.value) return; // don't override if already set
   // Saturday (refeed) wins over session-based inference
@@ -1781,6 +1940,8 @@ function saveQuickLog() {
   if (sessionType) {
     const existingIdx = state.sessions.findIndex(s => s.date === date && s.category !== 'walk');
     const entry = { date, type: sessionType, duration, notes, category: 'main' };
+    const sets = getStrengthSets(sessionType);
+    if (sets) entry.sets = sets;
     if (existingIdx >= 0) state.sessions[existingIdx] = entry;
     else state.sessions.push(entry);
   }
