@@ -1512,14 +1512,16 @@ function renderTrainingLog() {
     const hasSets = s.sets && exDefs;
     const detailRowId = `str-detail-${i}`;
     let detailRow = '';
-    let expandBtn = '';
+    let expandIndicator = '';
+    let rowClick = '';
     if (hasSets) {
+      const indicatorId = `str-ind-${i}`;
       const detailHtml = exDefs
         .filter(ex => s.sets[ex.id] && s.sets[ex.id].some(v => v != null))
         .map(ex => {
-          const setStrs = s.sets[ex.id].map((v, i) => {
+          const setStrs = s.sets[ex.id].map((v, idx) => {
             if (v == null) return '—';
-            const r = s.reps && s.reps[ex.id] && s.reps[ex.id][i];
+            const r = s.reps && s.reps[ex.id] && s.reps[ex.id][idx];
             return r ? `${v}kg × ${r}` : `${v}kg`;
           }).join(' · ');
           return `<div style="font-size:11px;color:#374151;padding:2px 0;display:flex;gap:8px;">
@@ -1527,16 +1529,17 @@ function renderTrainingLog() {
             <span>${setStrs}</span>
           </div>`;
         }).join('');
-      detailRow = `<tr id="${detailRowId}" style="display:none;"><td colspan="5" style="padding:6px 12px 10px;background:#f9fafb;border-bottom:1px solid #f3f4f6;">${detailHtml}</td></tr>`;
-      expandBtn = `<button class="del-btn" onclick="toggleStrDetail('${detailRowId}',this)" style="color:#9ca3af;margin-right:2px;" title="Show weights">▶</button>`;
+      detailRow = `<tr id="${detailRowId}" style="display:none;"><td colspan="4" style="padding:6px 12px 10px;background:#f9fafb;border-bottom:1px solid #f3f4f6;">${detailHtml}</td></tr>`;
+      expandIndicator = `<span id="${indicatorId}" style="display:inline-block;font-size:10px;color:#9ca3af;margin-right:5px;vertical-align:middle;line-height:1;">▶</span>`;
+      rowClick = ` onclick="toggleStrDetail('${detailRowId}','${indicatorId}')" style="cursor:pointer;"`;
     }
 
-    return `<tr>
+    return `<tr${rowClick}>
       <td>${formatDate(s.date)}</td>
-      <td>${typeTag(s.type)}</td>
+      <td>${expandIndicator}${typeTag(s.type)}</td>
       <td>${s.duration ? s.duration + ' min' : '—'}</td>
       <td style="color:#6b7280;font-size:11px;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s.notes||''}</td>
-      <td style="white-space:nowrap">${expandBtn}${del}</td>
+      <td style="white-space:nowrap">${del}</td>
     </tr>${detailRow}`;
   }).join('');
 
@@ -1913,12 +1916,13 @@ function getStrengthReps(sessionType) {
   return hasAny ? reps : null;
 }
 
-function toggleStrDetail(rowId, btn) {
+function toggleStrDetail(rowId, indicatorId) {
   const row = document.getElementById(rowId);
   if (!row) return;
   const isOpen = row.style.display !== 'none';
   row.style.display = isOpen ? 'none' : 'table-row';
-  btn.textContent = isOpen ? '▶' : '▼';
+  const ind = document.getElementById(indicatorId);
+  if (ind) ind.textContent = isOpen ? '▶' : '▼';
 }
 
 function autoSetDayType() {
