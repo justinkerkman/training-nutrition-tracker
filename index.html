@@ -302,43 +302,6 @@
 <!-- ===== DASHBOARD ===== -->
 <div id="panel-dashboard" class="panel active">
 
-  <div class="cards">
-    <div class="card">
-      <div class="label">Current weight</div>
-      <div class="value" id="dash-weight">—</div>
-      <div class="sub">kg · fasted</div>
-      <div class="prog-bar"><div class="prog-fill green" id="dash-weight-bar" style="width:0%"></div></div>
-      <div class="sub" id="dash-weight-pct">—% of goal closed</div>
-    </div>
-    <div class="card blue">
-      <div class="label">Goal</div>
-      <div class="value">107</div>
-      <div class="sub">kg target</div>
-      <div class="prog-bar"><div class="prog-fill blue" style="width:100%"></div></div>
-      <div class="sub" id="dash-weeks-left">— weeks at current pace</div>
-    </div>
-    <div class="card" id="dash-plan-card">
-      <div class="label">Active plan</div>
-      <div class="value" style="font-size:14px;line-height:1.3">Meal Plan v2</div>
-      <div class="sub">Session-aware</div>
-    </div>
-    <div class="card" id="dash-cal-card">
-      <div class="label">Today's target</div>
-      <div class="value" id="dash-cal-today">—</div>
-      <div class="sub" id="dash-day-type">—</div>
-      <div class="prog-bar" id="dash-cal-bar-wrap" style="display:none"><div class="prog-fill blue" id="dash-cal-bar" style="width:0%"></div></div>
-      <div class="sub" id="dash-cal-logged" style="display:none"></div>
-    </div>
-  </div>
-
-  <!-- Weight progress chart -->
-  <div class="section">
-    <h3>Weight trend <span class="badge">fasted Sat AM</span></h3>
-    <div class="chart-wrap">
-      <canvas id="weightChart"></canvas>
-    </div>
-  </div>
-
   <!-- This week snapshot -->
   <div class="section">
     <h3>This week's goals</h3>
@@ -895,6 +858,30 @@
 
 <!-- ===== SETTINGS ===== -->
 <div id="panel-settings" class="panel">
+
+  <div class="cards" style="margin-bottom:0;">
+    <div class="card">
+      <div class="label">Current weight</div>
+      <div class="value" id="dash-weight">—</div>
+      <div class="sub">kg · fasted</div>
+      <div class="prog-bar"><div class="prog-fill green" id="dash-weight-bar" style="width:0%"></div></div>
+      <div class="sub" id="dash-weight-pct">—% of goal closed</div>
+    </div>
+    <div class="card blue">
+      <div class="label">Goal</div>
+      <div class="value">107</div>
+      <div class="sub">kg target</div>
+      <div class="sub" id="dash-weeks-left">— weeks at current pace</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Weight trend <span class="badge">fasted Sat AM</span></h3>
+    <div class="chart-wrap">
+      <canvas id="weightChart"></canvas>
+    </div>
+  </div>
+
   <div class="section">
     <h3>Weight entries</h3>
     <div id="weight-entries-wrap"></div>
@@ -1422,34 +1409,37 @@ function renderDashboard() {
       }
     }
   }
-  const tgt = displayDayType && PLAN_TARGETS[displayDayType] ? PLAN_TARGETS[displayDayType] : null;
-  if (tgt) {
-    document.getElementById('dash-cal-today').textContent = tgt.cal.toLocaleString();
-    document.getElementById('dash-day-type').textContent = displayDayType + ' day' + (!todayNutri || !todayNutri.dayType ? ' (inferred)' : '');
-    if (todayNutri.calories) {
-      const pct = Math.min(100, Math.round(todayNutri.calories / tgt.cal * 100));
-      const over = todayNutri.calories > tgt.cal * 1.05;
-      document.getElementById('dash-cal-bar-wrap').style.display = 'block';
-      document.getElementById('dash-cal-bar').style.width = pct + '%';
-      document.getElementById('dash-cal-bar').className = 'prog-fill ' + (over ? 'red' : 'blue');
-      document.getElementById('dash-cal-logged').style.display = 'block';
-      document.getElementById('dash-cal-logged').textContent =
-        todayNutri.calories.toLocaleString() + ' logged · ' + pct + '%' + (over ? ' ⚠ over' : '');
-      document.getElementById('dash-cal-logged').style.color = over ? '#dc2626' : '#6b7280';
+  // Today's target card (removed from dashboard — skip if elements absent)
+  const _calEl = document.getElementById('dash-cal-today');
+  if (_calEl) {
+    const tgt = displayDayType && PLAN_TARGETS[displayDayType] ? PLAN_TARGETS[displayDayType] : null;
+    if (tgt) {
+      _calEl.textContent = tgt.cal.toLocaleString();
+      document.getElementById('dash-day-type').textContent = displayDayType + ' day' + (!todayNutri || !todayNutri.dayType ? ' (inferred)' : '');
+      if (todayNutri && todayNutri.calories) {
+        const pct = Math.min(100, Math.round(todayNutri.calories / tgt.cal * 100));
+        const over = todayNutri.calories > tgt.cal * 1.05;
+        document.getElementById('dash-cal-bar-wrap').style.display = 'block';
+        document.getElementById('dash-cal-bar').style.width = pct + '%';
+        document.getElementById('dash-cal-bar').className = 'prog-fill ' + (over ? 'red' : 'blue');
+        document.getElementById('dash-cal-logged').style.display = 'block';
+        document.getElementById('dash-cal-logged').textContent =
+          todayNutri.calories.toLocaleString() + ' logged · ' + pct + '%' + (over ? ' ⚠ over' : '');
+        document.getElementById('dash-cal-logged').style.color = over ? '#dc2626' : '#6b7280';
+      } else {
+        document.getElementById('dash-cal-bar-wrap').style.display = 'none';
+        document.getElementById('dash-cal-logged').style.display = 'none';
+      }
+      document.getElementById('dash-cal-card').className = 'card ' + (
+        !todayNutri || !todayNutri.calories ? '' : todayNutri.calories <= tgt.cal * 1.05 ? 'green' : 'red'
+      );
     } else {
+      _calEl.textContent = '—';
+      document.getElementById('dash-day-type').textContent = 'Log today in Quick Log';
       document.getElementById('dash-cal-bar-wrap').style.display = 'none';
       document.getElementById('dash-cal-logged').style.display = 'none';
+      document.getElementById('dash-cal-card').className = 'card';
     }
-    // Colour card by compliance
-    document.getElementById('dash-cal-card').className = 'card ' + (
-      !todayNutri.calories ? '' : todayNutri.calories <= tgt.cal * 1.05 ? 'green' : 'red'
-    );
-  } else {
-    document.getElementById('dash-cal-today').textContent = '—';
-    document.getElementById('dash-day-type').textContent = 'Log today in Quick Log';
-    document.getElementById('dash-cal-bar-wrap').style.display = 'none';
-    document.getElementById('dash-cal-logged').style.display = 'none';
-    document.getElementById('dash-cal-card').className = 'card';
   }
 
   // Current week goals
@@ -1664,7 +1654,7 @@ function switchTab(name) {
   if (name === 'nutrition') { renderNutritionLog(); buildMacroChart(); }
   if (name === 'weekly')    { renderWeekly(); }
   if (name === 'checkin')   { renderCheckin(); }
-  if (name === 'settings')  { renderSettings(); }
+  if (name === 'settings')  { renderSettings(); renderDashboard(); buildWeightChart(); }
   if (name === 'mealplan')  { mpInit(); }
 }
 
